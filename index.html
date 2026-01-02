@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MW DISC Pro™ | Relatório Executivo</title>
+    <style>
+        :root {
+            /* Identidade Visual Corporativa */
+            --primary: #0f172a;      /* Slate 900 */
+            --secondary: #334155;    /* Slate 700 */
+            --accent: #c2410c;       /* Orange 700 (Destaque sóbrio) */
+            --bg-app: #f1f5f9;
+            --surface: #ffffff;
+            
+            /* Cores DISC */
+            --d-color: #dc2626; 
+            --i-color: #f59e0b; 
+            --s-color: #10b981; 
+            --c-color: #2563eb;
+        }
+
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-app);
+            color: var(--primary);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            user-select: none;
+        }
+
+        /* --- UI DE TELA (NÃO IMPRESSA) --- */
+        .screen-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .card-screen {
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 40px;
+            margin-bottom: 20px;
+            animation: slideIn 0.5s ease;
+        }
+
+        header.screen-header {
+            text-align: center; margin-bottom: 40px;
+        }
+        header h1 { margin: 0; font-size: 2rem; color: var(--primary); letter-spacing: -1px; }
+        header small { text-transform: uppercase; letter-spacing: 2px; color: var(--secondary); font-size: 0.75rem; }
+
+        .btn {
+            background: var(--primary); color: white; border: none; padding: 15px 30px;
+            border-radius: 6px; font-weight: 700; cursor: pointer; width: 100%;
+            text-transform: uppercase; font-size: 0.9rem; transition: 0.2s;
+        }
+        .btn:hover { background: var(--secondary); transform: translateY(-2px); }
+
+        .hidden { display: none !important; }
+
+        /* Grid de Perguntas */
+        .quiz-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+        .quiz-item { background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .quiz-item label { font-size: 0.8rem; font-weight: 700; color: var(--secondary); text-transform: uppercase; display: block; margin-bottom: 8px; }
+        select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; background: white; }
+
+        /* --- UI DE IMPRESSÃO (O RELATÓRIO PDF) --- */
+        #report-section { display: none; } /* Esconde na tela até ser gerado */
+
+        /* CONFIGURAÇÃO CRÍTICA DE PDF */
+        @media print {
+            @page {
+                size: A4;
+                margin: 0; /* Remove cabeçalhos/rodapés do navegador */
+            }
+
+            body { background: white; margin: 0; }
+            .screen-container, .no-print { display: none !important; }
+            #report-section { display: block !important; }
+
+            /* Página A4 Física */
+            .page {
+                width: 210mm;
+                min-height: 297mm;
+                padding: 15mm 20mm; /* Margens internas seguras */
+                margin: 0 auto;
+                background: white;
+                position: relative;
+                page-break-after: always;
+                overflow: hidden; /* Evita sobreposição */
+            }
+
+            .page:last-child { page-break-after: auto; }
+
+            /* Tipografia Impressa */
+            h1, h2, h3 { color: var(--primary); margin-top: 0; }
+            p, li { font-size: 10pt; text-align: justify; color: #333; }
+            
+            /* Capa */
+            .cover-content {
+                height: 250mm;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+                border: 2px solid var(--primary);
+            }
+            
+            /* Gráficos e Layout */
+            .report-header {
+                border-bottom: 2px solid var(--accent);
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+            }
+
+            .cols-2 { display: grid; grid-template-columns: 35% 60%; gap: 5%; margin-bottom: 20px; }
+            
+            /* Ajuste Gráfico */
+            .chart-container { width: 100%; }
+            
+            /* Blocos de Feedback */
+            .feedback-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+                margin-bottom: 15px;
+            }
+            .feedback-box {
+                border: 1px solid #e2e8f0;
+                padding: 10px 15px;
+                border-radius: 4px;
+                background: #f8fafc;
+            }
+            .feedback-box h4 { margin: 0 0 5px 0; color: var(--accent); font-size: 9pt; text-transform: uppercase; }
+            .feedback-box ul { margin: 0; padding-left: 15px; }
+            .feedback-box li { margin-bottom: 3px; font-size: 9pt; }
+
+            /* Assinatura */
+            .signature-area {
+                margin-top: 30px;
+                border-top: 1px solid #ccc;
+                padding-top: 10px;
+                display: flex;
+                justify-content: space-between;
+                font-size: 9pt;
+            }
+            .digital-sig {
+                font-family: 'Courier New', monospace;
+                color: var(--secondary);
+                background: #f1f5f9;
+                padding: 5px 10px;
+                border-radius: 4px;
+            }
+        }
+
+        /* Hack para visualizar o relatório na tela (Debug) */
+        .preview-mode #report-section { display: block; }
+        .preview-mode .screen-container { display: none; }
+        .preview-mode .page {
+            width: 210mm; height: 297mm; border: 1px solid #ccc; margin: 20px auto; padding: 20mm; background: white;
+        }
+
+        @keyframes slideIn { from {opacity:0; transform: translateY(10px);} to {opacity:1; transform: translateY(0);} }
+    </style>
+</head>
+<body>
+
+    <div class="screen-container" id="app-interface">
+        <header class="screen-header">
+            <h1>MW DISC Pro™</h1>
+            <small>Consultoria & Gestão Comportamental</small>
+        </header>
+
+        <div id="step-1" class="card-screen">
+            <h2>Dados da Avaliação</h2>
+            <div style="margin-bottom: 20px;">
+                <label style="display:block; margin-bottom:5px; font-weight:bold;">Nome do Avaliado</label>
+                <input type="text" id="inpName" placeholder="Nome Completo" style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:6px;">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display:block; margin-bottom:5px; font-weight:bold;">Objetivo</label>
+                <select id="inpObj" style="padding:12px;">
+                    <option>Recrutamento e Seleção</option>
+                    <option>Desenvolvimento de Liderança</option>
+                    <option>Coaching Executivo</option>
+                    <option>Alinhamento de Equipe</option>
+                </select>
+            </div>
+            <button class="btn" onclick="Engine.goToQuiz()">Iniciar Análise</button>
+        </div>
+
+        <div id="step-2" class="card-screen hidden">
+            <h2 style="text-align:center; color: var(--accent);">Mapeamento Comportamental</h2>
+            <p style="text-align:center; margin-bottom: 30px; font-size: 0.9rem;">
+                Em cada grupo, selecione a palavra que <strong>MAIS</strong> se identifica com você no ambiente profissional.
+            </p>
+            <div id="quiz-container" class="quiz-grid"></div>
+            <br>
+            <button class="btn" onclick="Engine.calculate()">Gerar Relatório Profissional</button>
+        </div>
+    </div>
+
+    <div id="report-section">
+        
+        <div class="page">
+            <div class="cover-content">
+                <h1 style="font-size: 4rem; margin-bottom: 10px;">MW DISC Pro™</h1>
+                <h2 style="font-size: 1.5rem; color: var(--secondary); font-weight: 300;">Relatório de Análise de Perfil</h2>
+                
+                <div style="margin: 60px 0; width: 60%;">
+                    <hr style="border: 0; border-top: 1px solid var(--accent);">
+                </div>
+
+                <div style="text-align: left; width: 60%;">
+                    <p><strong>AVALIADO:</strong> <span id="cover-name">Nome do Candidato</span></p>
+                    <p><strong>OBJETIVO:</strong> <span id="cover-obj">Seleção</span></p>
+                    <p><strong>DATA:</strong> <span id="cover-date">00/00/0000</span></p>
+                </div>
+
+                <div style="margin-top: 100px; font-size: 9pt; color: #999;">
+                    <p>Metodologia de Análise Comportamental</p>
+                    <p>Consultoria: <strong>Macs Wellison</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="page">
+            <div class="report-header">
+                <div>
+                    <h2 style="margin:0; font-size: 18pt;">Análise Executiva</h2>
+                    <span style="font-size: 10pt; color: #666;">Inventário Comportamental</span>
+                </div>
+                <div style="text-align: right; font-size: 9pt;">
+                    MW DISC Pro™<br>Ref: <span id="ref-code">000</span>
+                </div>
+            </div>
+
+            <div class="cols-2">
+                <div class="left-col">
+                    <div class="chart-container" id="radar-chart">
+                        </div>
+                    <div style="text-align: center; margin-top: 10px; font-size: 8pt; font-family: monospace;">
+                        D:<span id="sc-d">0</span>% | 
+                        I:<span id="sc-i">0</span>% | 
+                        S:<span id="sc-s">0</span>% | 
+                        C:<span id="sc-c">0</span>%
+                    </div>
+                </div>
+
+                <div class="right-col">
+                    <h3 id="profile-title" style="color: var(--accent); margin-bottom: 10px;">PERFIL PREDOMINANTE</h3>
+                    <p id="profile-text" style="line-height: 1.4;">Descrição do perfil...</p>
+                    
+                    <div style="margin-top: 15px; background: #f1f5f9; padding: 10px; border-radius: 4px;">
+                        <strong>💎 Valor para a Empresa:</strong>
+                        <p id="profile-value" style="margin: 5px 0 0 0; font-size: 9pt;"></p>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="font-size: 12pt; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 10px;">Mapeamento de Competências</h3>
+            
+            <div class="feedback-grid">
+                <div class="feedback-box">
+                    <h4>🚀 Pontos Fortes</h4>
+                    <ul id="list-strengths"></ul>
+                </div>
+                <div class="feedback-box">
+                    <h4>⚠️ Pontos de Atenção</h4>
+                    <ul id="list-weaknesses"></ul>
+                </div>
+                <div class="feedback-box">
+                    <h4>🔥 Motivações</h4>
+                    <ul id="list-motivations"></ul>
+                </div>
+                <div class="feedback-box">
+                    <h4>❄️ Medos Básicos</h4>
+                    <ul id="list-fears"></ul>
+                </div>
+            </div>
+
+            <div style="margin-top: 15px; border: 1px solid var(--primary); padding: 10px; border-radius: 4px;">
+                <h4 style="margin: 0 0 5px 0; color: var(--primary);">💼 Cargos & Funções Compatíveis</h4>
+                <p id="profile-careers" style="margin: 0; font-size: 9pt;"></p>
+            </div>
+
+            <div class="signature-area">
+                <div>
+                    Documento gerado eletronicamente.<br>
+                    Validade Técnica: 12 meses.
+                </div>
+                <div style="text-align: right;">
+                    <div style="margin-bottom: 5px;">Consultor Responsável:</div>
+                    <div class="digital-sig"> Assinado digitalmente: Macs Wellison </div>
+                    <div style="font-size: 8pt; margin-top: 2px;" id="sig-date"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+const Engine = (() => {
+    
+    // BANCO DE DADOS INTELIGENTE
+    const data = {
+        'D': {
+            title: "EXECUTOR (Dominância Alta)",
+            desc: "Perfil orientado a resultados, desafios e rapidez. Tende a assumir o controle e tomar decisões sob pressão. Comunicação direta e assertiva.",
+            value: "Agilidade na tomada de decisão e foco em metas agressivas.",
+            strengths: ["Liderança natural", "Resolução de problemas", "Autoconfiança", "Visão global"],
+            weaknesses: ["Impaciência com detalhes", "Pode ser autoritário", "Dificuldade em ouvir", "Assume riscos excessivos"],
+            motivations: ["Desafios", "Poder e controle", "Competição", "Resultados imediatos"],
+            fears: ["Falhar", "Perder o controle", "Ser passado para trás", "Ineficiência"],
+            careers: "CEO, Diretor Comercial, Advogado, Empreendedor, Gerente de Projetos, Gestor de Crise."
+        },
+        'I': {
+            title: "COMUNICADOR (Influência Alta)",
+            desc: "Perfil orientado a pessoas, conexões e otimismo. Persuasivo, entusiasta e criativo. Gosta de ambientes dinâmicos e colaborativos.",
+            value: "Capacidade de influenciar, motivar equipes e criar redes de contato.",
+            strengths: ["Persuasão", "Otimismo", "Criatividade", "Facilidade de relacionamento"],
+            weaknesses: ["Desorganização", "Impulsividade", "Falta de foco em detalhes", "Promete mais do que entrega"],
+            motivations: ["Reconhecimento social", "Liberdade de expressão", "Ambiente amigável", "Variedade"],
+            fears: ["Rejeição", "Perda de prestígio", "Rotina repetitiva", "Detalhes minuciosos"],
+            careers: "Vendas, Marketing, Relações Públicas, Treinamento, Recrutador, Palestrante."
+        },
+        'S': {
+            title: "PLANEJADOR (Estabilidade Alta)",
+            desc: "Perfil orientado a processos, segurança e colaboração. Paciente, leal e bom ouvinte. Prefere ambientes harmônicos e previsíveis.",
+            value: "Consistência na entrega, lealdade e suporte especializado.",
+            strengths: ["Paciência", "Lealdade", "Bom ouvinte", "Trabalho em equipe"],
+            weaknesses: ["Resistência a mudanças", "Dificuldade em dizer não", "Demora na decisão", "Evita conflitos"],
+            motivations: ["Segurança", "Estabilidade", "Apreciação sincera", "Tempo para ajustar-se"],
+            fears: ["Mudanças bruscas", "Conflitos agressivos", "Imprevisibilidade", "Ofender os outros"],
+            careers: "Recursos Humanos, Atendimento ao Cliente, Enfermagem, Psicologia, Gestão Operacional, Administrativo."
+        },
+        'C': {
+            title: "ANALISTA (Conformidade Alta)",
+            desc: "Perfil orientado a dados, qualidade e precisão. Analítico, disciplinado e formal. Segue regras e busca a perfeição técnica.",
+            value: "Garantia de qualidade, análise de riscos e profundidade técnica.",
+            strengths: ["Precisão", "Análise crítica", "Organização", "Disciplina"],
+            weaknesses: ["Paralisia por análise", "Crítico excessivo", "Isolamento social", "Rigidez"],
+            motivations: ["Regras claras", "Qualidade", "Lógica e dados", "Especialização"],
+            fears: ["Críticas ao trabalho", "Erros", "Falta de regras", "Emoções irracionais"],
+            careers: "Engenharia, Finanças/Contabilidade, Programação, Controle de Qualidade, Cientista de Dados, Auditoria."
+        }
+    };
+
+    // 24 Grupos de Palavras
+    const questions = [
+        {id:1, o:[{t:"Ousado",v:"D"},{t:"Amigável",v:"I"},{t:"Modesto",v:"S"},{t:"Cuidadoso",v:"C"}]},
+        {id:2, o:[{t:"Enérgico",v:"D"},{t:"Comunicativo",v:"I"},{t:"Sistemático",v:"C"},{t:"Agradável",v:"S"}]},
+        {id:3, o:[{t:"Vigoroso",v:"D"},{t:"Divertido",v:"I"},{t:"Calmo",v:"S"},{t:"Preciso",v:"C"}]},
+        {id:4, o:[{t:"Determinado",v:"D"},{t:"Convincente",v:"I"},{t:"Bondoso",v:"S"},{t:"Cauteloso",v:"C"}]},
+        {id:5, o:[{t:"Competitivo",v:"D"},{t:"Alegre",v:"I"},{t:"Considerado",v:"S"},{t:"Harmonioso",v:"C"}]},
+        {id:6, o:[{t:"Lógico",v:"D"},{t:"Popular",v:"I"},{t:"Leal",v:"S"},{t:"Perfeccionista",v:"C"}]},
+        {id:7, o:[{t:"Assertivo",v:"D"},{t:"Sociável",v:"I"},{t:"Paciente",v:"S"},{t:"Disciplinado",v:"C"}]},
+        {id:8, o:[{t:"Independente",v:"D"},{t:"Estimulante",v:"I"},{t:"Prestativo",v:"S"},{t:"Organizado",v:"C"}]},
+        {id:9, o:[{t:"Direto",v:"D"},{t:"Espontâneo",v:"I"},{t:"Compreensivo",v:"S"},{t:"Analítico",v:"C"}]},
+        {id:10, o:[{t:"Inovador",v:"D"},{t:"Otimista",v:"I"},{t:"Rotineiro",v:"S"},{t:"Crítico",v:"C"}]},
+        {id:11, o:[{t:"Firme",v:"D"},{t:"Entusiasta",v:"I"},{t:"Diplomático",v:"S"},{t:"Detalhista",v:"C"}]},
+        {id:12, o:[{t:"Decidido",v:"D"},{t:"Persuasivo",v:"I"},{t:"Conservador",v:"S"},{t:"Exato",v:"C"}]},
+        {id:13, o:[{t:"Aventureiro",v:"D"},{t:"Inspirador",v:"I"},{t:"Constante",v:"S"},{t:"Factível",v:"C"}]},
+        {id:14, o:[{t:"Persistente",v:"D"},{t:"Radiante",v:"I"},{t:"Acolhedor",v:"S"},{t:"Formal",v:"C"}]},
+        {id:15, o:[{t:"Audacioso",v:"D"},{t:"Brincalhão",v:"I"},{t:"Estável",v:"S"},{t:"Ponderado",v:"C"}]},
+        {id:16, o:[{t:"Autoconfiante",v:"D"},{t:"Falante",v:"I"},{t:"Tolerante",v:"S"},{t:"Estudioso",v:"C"}]},
+        {id:17, o:[{t:"Dominante",v:"D"},{t:"Animado",v:"I"},{t:"Ouvinte",v:"S"},{t:"Controlado",v:"C"}]},
+        {id:18, o:[{t:"Vigoroso",v:"D"},{t:"Carismático",v:"I"},{t:"Satisfeito",v:"S"},{t:"Convencional",v:"C"}]},
+        {id:19, o:[{t:"Exigente",v:"D"},{t:"Impulsivo",v:"I"},{t:"Gentil",v:"S"},{t:"Previsível",v:"C"}]},
+        {id:20, o:[{t:"Argumentador",v:"D"},{t:"Jovial",v:"I"},{t:"Equilibrado",v:"S"},{t:"Racional",v:"C"}]},
+        {id:21, o:[{t:"Líder",v:"D"},{t:"Extrovertido",v:"I"},{t:"Conciliador",v:"S"},{t:"Técnico",v:"C"}]},
+        {id:22, o:[{t:"Produtivo",v:"D"},{t:"Sociável",v:"I"},{t:"Desapegado",v:"S"},{t:"Idealista",v:"C"}]},
+        {id:23, o:[{t:"Ação",v:"D"},{t:"Pessoas",v:"I"},{t:"Segurança",v:"S"},{t:"Dados",v:"C"}]},
+        {id:24, o:[{t:"Destemido",v:"D"},{t:"Magnético",v:"I"},{t:"Amável",v:"S"},{t:"Meticuloso",v:"C"}]}
+    ];
+
+    return {
+        goToQuiz: () => {
+            if(!document.getElementById('inpName').value) return alert("Preencha o nome.");
+            document.getElementById('step-1').classList.add('hidden');
+            document.getElementById('step-2').classList.remove('hidden');
+            
+            const cont = document.getElementById('quiz-container');
+            questions.forEach(q => {
+                let html = `<div class="quiz-item"><label>Grupo ${q.id}</label><select class="q-select">`;
+                html += `<option value="">Selecione...</option>`;
+                q.o.sort(()=>Math.random()-0.5).forEach(op => {
+                    html += `<option value="${op.v}">${op.t}</option>`;
+                });
+                html += `</select></div>`;
+                cont.innerHTML += html;
+            });
+            window.scrollTo(0,0);
+        },
+        calculate: () => {
+            const selects = document.querySelectorAll('.q-select');
+            let s = {D:0,I:0,S:0,C:0};
+            let count = 0;
+            selects.forEach(sel => {
+                if(sel.value){ s[sel.value]++; count++; }
+            });
+
+            if(count < 24) return alert("Responda todas as perguntas.");
+
+            // Normalizar para 100%
+            let total = 24;
+            let res = {
+                D: Math.round((s.D/total)*100),
+                I: Math.round((s.I/total)*100),
+                S: Math.round((s.S/total)*100),
+                C: Math.round((s.C/total)*100)
+            };
+
+            Engine.renderReport(res);
+        },
+        renderReport: (res) => {
+            // Preencher Capa e Header
+            const name = document.getElementById('inpName').value;
+            const obj = document.getElementById('inpObj').value;
+            const date = new Date().toLocaleDateString();
+
+            document.getElementById('cover-name').innerText = name;
+            document.getElementById('cover-obj').innerText = obj;
+            document.getElementById('cover-date').innerText = date;
+            document.getElementById('ref-code').innerText = Math.floor(Math.random()*9000)+1000;
+            document.getElementById('sig-date').innerText = date;
+
+            // Determinar Perfil Dominante
+            let max = 0; 
+            let profile = 'D';
+            for(let k in res) {
+                document.getElementById('sc-'+k.toLowerCase()).innerText = res[k];
+                if(res[k] > max) { max = res[k]; profile = k; }
+            }
+
+            // Preencher Textos
+            const db = data[profile];
+            document.getElementById('profile-title').innerText = db.title;
+            document.getElementById('profile-text').innerText = db.desc;
+            document.getElementById('profile-value').innerText = db.value;
+            document.getElementById('profile-careers').innerText = db.careers;
+
+            // Listas
+            const fillList = (id, arr) => {
+                const ul = document.getElementById(id);
+                ul.innerHTML = "";
+                arr.forEach(txt => ul.innerHTML += `<li>${txt}</li>`);
+            };
+            fillList('list-strengths', db.strengths);
+            fillList('list-weaknesses', db.weaknesses);
+            fillList('list-motivations', db.motivations);
+            fillList('list-fears', db.fears);
+
+            // Gerar Gráfico
+            Engine.drawChart(res);
+
+            // Print Trigger
+            setTimeout(() => window.print(), 500);
+        },
+        drawChart: (res) => {
+            // SVG Radar Simples
+            const scale = 1.2;
+            const c = 100;
+            const getP = (val, ang) => {
+                const r = (ang-90) * (Math.PI/180);
+                return `${c + (val*scale)*Math.cos(r)},${c + (val*scale)*Math.sin(r)}`;
+            };
+            
+            const svg = `
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="100" cy="100" r="20" fill="none" stroke="#ddd"/>
+                <circle cx="100" cy="100" r="40" fill="none" stroke="#ddd"/>
+                <circle cx="100" cy="100" r="60" fill="none" stroke="#ddd"/>
+                <circle cx="100" cy="100" r="80" fill="none" stroke="#999"/>
+                <line x1="100" y1="20" x2="100" y2="180" stroke="#eee"/>
+                <line x1="20" y1="100" x2="180" y2="100" stroke="#eee"/>
+                
+                <polygon points="${getP(res.D,0)} ${getP(res.I,90)} ${getP(res.S,180)} ${getP(res.C,270)}" 
+                         fill="rgba(220, 38, 38, 0.4)" stroke="#c2410c" stroke-width="2"/>
+                
+                <text x="100" y="15" text-anchor="middle" font-size="10" font-weight="bold" fill="#dc2626">D</text>
+                <text x="190" y="105" text-anchor="middle" font-size="10" font-weight="bold" fill="#f59e0b">I</text>
+                <text x="100" y="195" text-anchor="middle" font-size="10" font-weight="bold" fill="#10b981">S</text>
+                <text x="10" y="105" text-anchor="middle" font-size="10" font-weight="bold" fill="#2563eb">C</text>
+            </svg>`;
+            document.getElementById('radar-chart').innerHTML = svg;
+        }
+    };
+})();
+</script>
+</body>
+</html>
